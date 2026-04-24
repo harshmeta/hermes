@@ -324,7 +324,14 @@ bool Sampler::platformSuspendVMAndWalkStack(SamplingProfiler *profiler) {
   // Signal target runtime thread to sample stack. The runtimeDataLock is
   // held by the caller, ensuring the runtime won't start to be used on
   // another thread before sampling begins.
-  pthread_kill(posixProfiler->currentThread_, SIGPROF);
+  // Check if the target thread is still valid before signaling.
+  // On some platforms (e.g., Android with bionic), pthread_kill on a
+  // terminated thread can cause an abort rather than returning ESRCH.
+  int result = pthread_kill(posixProfiler->currentThread_, SIGPROF);
+  if (result != 0) {
+    self->profilerForSig_.store(nullptr, std::memory_order_release);
+    return false;
+  }
 
   // Threading: samplingDoneSem_ will synchronise this thread with the
   // signal handler, so that we only have one active signal at a time.

